@@ -1,10 +1,11 @@
 "use client";
 
-import { MapPin, Package, Star, Truck, Warehouse } from "lucide-react";
+import { MapPin, Truck } from "lucide-react";
 import { useMemo } from "react";
+import Celda from "@/components/matriz/Celda";
+import Leyenda from "@/components/matriz/Leyenda";
+import { formatoNumero } from "@/lib/formato";
 import type { Mundo, Pedido, Vehiculo } from "@/types/mundo";
-
-const numero = new Intl.NumberFormat("es-CO");
 
 interface Props {
   mundo: Mundo;
@@ -57,29 +58,12 @@ export default function Matriz({ mundo, pedidos, vehiculos }: Props) {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-300">
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-3 rounded-sm bg-amber-400" />
-            Depósito
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-3 rounded-sm bg-sky-500/60" />
-            Pedido
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <span className="size-3 rounded-sm bg-fuchsia-500/70" />
-            Premium
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Package className="size-3.5" />
-            {pedidos.length} pedidos · {premiumTotal} premium ·{" "}
-            {numero.format(pesoTotal)} kg
-          </span>
-          <span className="inline-flex items-center gap-1.5">
-            <Truck className="size-3.5" />
-            {vehiculos.length} vehículos
-          </span>
-        </div>
+        <Leyenda
+          pedidos={pedidos}
+          vehiculos={vehiculos}
+          pesoTotal={pesoTotal}
+          premiumTotal={premiumTotal}
+        />
       </div>
 
       <div className="mt-4 overflow-x-auto pb-1">
@@ -88,74 +72,15 @@ export default function Matriz({ mundo, pedidos, vehiculos }: Props) {
           style={{ gridTemplateColumns: columnas }}
         >
           {filas.map((y) =>
-            Array.from({ length: mundo.grilla_ancho }, (_, x) => {
-              const esDeposito =
-                x === mundo.deposito_x && y === mundo.deposito_y;
-              const pedidosCelda = pedidosPorCelda.get(`${x},${y}`) ?? [];
-
-              if (esDeposito) {
-                return (
-                  <div
-                    key={`${x}-${y}`}
-                    title={`Depósito (${x}, ${y})`}
-                    className="flex aspect-square items-center justify-center bg-amber-400 text-amber-950"
-                  >
-                    <Warehouse className="size-3 sm:size-4" />
-                  </div>
-                );
-              }
-
-              if (pedidosCelda.length > 0) {
-                const tienePremium = pedidosCelda.some(
-                  (pedido) => pedido.premium,
-                );
-                const detalle = pedidosCelda
-                  .map(
-                    (pedido) =>
-                      `#${pedido.id} · ${pedido.peso} kg${pedido.premium ? " · premium" : ""}`,
-                  )
-                  .join("\n");
-
-                return (
-                  <div
-                    key={`${x}-${y}`}
-                    title={`Pedido en (${x}, ${y})\n${detalle}`}
-                    className={
-                      tienePremium
-                        ? "relative flex aspect-square flex-col items-center justify-center bg-fuchsia-100 leading-none text-fuchsia-800 dark:bg-fuchsia-500/20 dark:text-fuchsia-200"
-                        : "relative flex aspect-square flex-col items-center justify-center bg-sky-100 leading-none text-sky-800 dark:bg-sky-500/20 dark:text-sky-200"
-                    }
-                  >
-                    {tienePremium && (
-                      <Star className="absolute left-0.5 top-0.5 size-2 fill-current sm:size-2.5" />
-                    )}
-                    <span className="text-[7px] font-bold sm:text-[9px]">
-                      {pedidosCelda.map((pedido) => `#${pedido.id}`).join(" ")}
-                    </span>
-                    <span className="mt-0.5 text-[6px] font-medium opacity-80 sm:text-[8px]">
-                      {pedidosCelda.reduce(
-                        (total, pedido) => total + pedido.peso,
-                        0,
-                      )}{" "}
-                      kg
-                    </span>
-                    {pedidosCelda.length > 1 && (
-                      <span className="absolute right-0.5 top-0.5 rounded-full bg-sky-600 px-1 text-[6px] font-bold text-white">
-                        {pedidosCelda.length}
-                      </span>
-                    )}
-                  </div>
-                );
-              }
-
-              return (
-                <div
-                  key={`${x}-${y}`}
-                  title={`(${x}, ${y})`}
-                  className="aspect-square bg-white dark:bg-slate-950"
-                />
-              );
-            }),
+            Array.from({ length: mundo.grilla_ancho }, (_, x) => (
+              <Celda
+                key={`${x}-${y}`}
+                x={x}
+                y={y}
+                esDeposito={x === mundo.deposito_x && y === mundo.deposito_y}
+                pedidos={pedidosPorCelda.get(`${x},${y}`) ?? []}
+              />
+            )),
           )}
         </div>
       </div>
@@ -163,8 +88,8 @@ export default function Matriz({ mundo, pedidos, vehiculos }: Props) {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
         <span className="inline-flex items-center gap-1.5">
           <Truck className="size-4" />
-          {numero.format(mundo.costo_por_vehiculo)} por vehículo ·{" "}
-          {numero.format(mundo.costo_por_cuadra)} por cuadra
+          {formatoNumero.format(mundo.costo_por_vehiculo)} por vehículo ·{" "}
+          {formatoNumero.format(mundo.costo_por_cuadra)} por cuadra
         </span>
         <span>x → derecha · y ↑ arriba (y = 0 abajo)</span>
       </div>

@@ -1,42 +1,16 @@
 "use client";
 
-import {
-  CheckCircle2,
-  Loader2,
-  Package,
-  TriangleAlert,
-  Truck,
-  Upload,
-  Warehouse,
-} from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { type FormEvent, useState } from "react";
+import CamposArchivo, { campos } from "@/components/dataset/CamposArchivo";
+import MensajeError from "@/components/ui/MensajeError";
+import MensajeExito from "@/components/ui/MensajeExito";
 import type { Dataset } from "@/types/mundo";
 
 interface Props {
   dataset: Dataset;
   onCargado: (dataset: Dataset) => void;
 }
-
-const campos = [
-  {
-    nombre: "mundo",
-    etiqueta: "Mundo",
-    icono: Warehouse,
-    ayuda: "mundo.json o mundo.csv",
-  },
-  {
-    nombre: "pedidos",
-    etiqueta: "Pedidos",
-    icono: Package,
-    ayuda: "pedidos.json o pedidos.csv",
-  },
-  {
-    nombre: "vehiculos",
-    etiqueta: "Vehículos",
-    icono: Truck,
-    ayuda: "vehiculos.json o vehiculos.csv",
-  },
-] as const;
 
 export default function SubirDataset({ dataset, onCargado }: Props) {
   const [subiendo, setSubiendo] = useState(false);
@@ -114,30 +88,7 @@ export default function SubirDataset({ dataset, onCargado }: Props) {
       </div>
 
       <form onSubmit={enviar} className="mt-4 space-y-4">
-        <div className="grid gap-3 sm:grid-cols-3">
-          {campos.map((campo) => (
-            <label
-              key={campo.nombre}
-              htmlFor={`archivo-${campo.nombre}`}
-              className="flex cursor-pointer flex-col gap-2 rounded-xl border border-slate-200 p-3 transition hover:border-sky-400 hover:bg-sky-50/50 dark:border-slate-800 dark:hover:border-sky-700 dark:hover:bg-sky-950/40"
-            >
-              <span className="flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
-                <campo.icono className="size-4 text-sky-500" />
-                {campo.etiqueta}
-              </span>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
-                {campo.ayuda}
-              </span>
-              <input
-                id={`archivo-${campo.nombre}`}
-                name={campo.nombre}
-                type="file"
-                accept=".json,.csv,application/json,text/csv"
-                className="block w-full text-xs text-slate-600 file:mr-2 file:cursor-pointer file:rounded-lg file:border-0 file:bg-sky-600 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white hover:file:bg-sky-700 dark:text-slate-400"
-              />
-            </label>
-          ))}
-        </div>
+        <CamposArchivo />
 
         <div className="flex flex-wrap items-center gap-3">
           <button
@@ -153,23 +104,10 @@ export default function SubirDataset({ dataset, onCargado }: Props) {
             {subiendo ? "Cargando…" : "Cargar dataset"}
           </button>
 
-          {mensaje && (
-            <p className="flex items-center gap-1.5 text-sm font-medium text-emerald-600 dark:text-emerald-400">
-              <CheckCircle2 className="size-4" />
-              {mensaje}
-            </p>
-          )}
+          {mensaje && <MensajeExito mensaje={mensaje} />}
         </div>
 
-        {error && (
-          <div
-            role="alert"
-            className="flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm font-medium text-red-700 dark:bg-red-950/40 dark:text-red-300"
-          >
-            <TriangleAlert className="size-4 shrink-0" />
-            {error}
-          </div>
-        )}
+        {error && <MensajeError mensaje={error} />}
       </form>
     </section>
   );

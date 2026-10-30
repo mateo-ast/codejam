@@ -1,7 +1,8 @@
 "use client";
 
-import { Loader2, RefreshCw, TriangleAlert } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import EstadoCargando from "@/components/dashboard/EstadoCargando";
+import EstadoError from "@/components/dashboard/EstadoError";
 import Matriz from "@/components/Matriz";
 import Plan from "@/components/Plan";
 import SubirDataset from "@/components/SubirDataset";
@@ -58,37 +59,17 @@ export default function Dashboard() {
   };
 
   if (estado === "cargando") {
-    return (
-      <output className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-slate-200 bg-white py-24 dark:border-slate-800 dark:bg-slate-950">
-        <Loader2 className="size-8 animate-spin text-sky-500" />
-        <span className="text-sm text-slate-500 dark:text-slate-400">
-          Cargando dataset…
-        </span>
-      </output>
-    );
+    return <EstadoCargando />;
   }
 
   if (estado === "error" || !dataset) {
     return (
-      <div
-        role="alert"
-        className="flex flex-col items-center justify-center gap-3 rounded-2xl border border-red-200 bg-red-50 py-24 text-center dark:border-red-900 dark:bg-red-950/40"
-      >
-        <TriangleAlert className="size-8 text-red-500" />
-        <p className="text-sm font-medium text-red-700 dark:text-red-300">
-          {error ?? "No se pudo cargar el dataset"}
-        </p>
-        <button
-          type="button"
-          onClick={() => {
-            cargar();
-          }}
-          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-red-700"
-        >
-          <RefreshCw className="size-4" />
-          Reintentar
-        </button>
-      </div>
+      <EstadoError
+        mensaje={error ?? "No se pudo cargar el dataset"}
+        onReintentar={() => {
+          cargar();
+        }}
+      />
     );
   }
 
