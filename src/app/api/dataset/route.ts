@@ -23,9 +23,12 @@ export async function GET() {
   try {
     const dataset = await leerDataset();
     return NextResponse.json(dataset);
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: "No se pudo leer el dataset" },
+      {
+        error:
+          error instanceof Error ? error.message : "No se pudo leer el dataset",
+      },
       { status: 500 },
     );
   }

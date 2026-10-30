@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { simularPlan } from "@/lib/simulacion";
 import type {
@@ -8,7 +8,6 @@ import type {
   Pedido,
   Plan,
   ResultadoPlan,
-  Simulacion,
   Vehiculo,
 } from "@/types/mundo";
 
@@ -97,6 +96,22 @@ export function normalizarMundo(bruto: unknown): Mundo {
     );
   }
 
+  const camposNoNegativos: { nombre: keyof Mundo; valor: number }[] = [
+    { nombre: "tiempo_servicio", valor: mundo.tiempo_servicio },
+    { nombre: "tiempo_carga", valor: mundo.tiempo_carga },
+    { nombre: "min_por_cuadra", valor: mundo.min_por_cuadra },
+    { nombre: "costo_por_cuadra", valor: mundo.costo_por_cuadra },
+    { nombre: "costo_por_vehiculo", valor: mundo.costo_por_vehiculo },
+    { nombre: "costo_por_minuto_total", valor: mundo.costo_por_minuto_total },
+    { nombre: "costo_por_falla", valor: mundo.costo_por_falla },
+  ];
+
+  for (const campo of camposNoNegativos) {
+    if (!Number.isFinite(campo.valor) || campo.valor < 0) {
+      throw new ErrorDataset(`El campo ${campo.nombre} no puede ser negativo`);
+    }
+  }
+
   return mundo;
 }
 
@@ -126,6 +141,14 @@ export function normalizarPedidos(bruto: unknown): Pedido[] {
         `El id "${id}" del pedido #${indice + 1} no es un entero`,
       );
     }
+    if (!Number.isInteger(x) || !Number.isInteger(y)) {
+      throw new ErrorDataset(
+        `El pedido ${id} tiene coordenadas no enteras (${x}, ${y})`,
+      );
+    }
+    if (peso < 0) {
+      throw new ErrorDataset(`El pedido ${id} tiene un peso negativo`);
+    }
     if (ids.has(id)) {
       throw new ErrorDataset(`El pedido ${id} está duplicado`);
     }
@@ -133,8 +156,8 @@ export function normalizarPedidos(bruto: unknown): Pedido[] {
     ids.add(id);
     pedidos.push({
       id,
-      x: Math.round(x),
-      y: Math.round(y),
+      x,
+      y,
       peso: Math.round(peso),
     });
   });
@@ -203,6 +226,10 @@ function esJson(contenido: string): boolean {
   return contenido.startsWith("{") || contenido.startsWith("[");
 }
 
+function limpiarTexto(texto: string): string {
+  return texto.replace(/^\uFEFF/, "").trim();
+}
+
 function interpretarJson(texto: string, nombre: string): unknown {
   try {
     return JSON.parse(texto);
@@ -241,7 +268,7 @@ function parsearLineasCsv(texto: string): string[][] {
 }
 
 function parsearTextoMundo(texto: string): unknown {
-  const contenido = texto.trim();
+  const contenido = limpiarTexto(texto);
   if (contenido === "") {
     throw new ErrorDataset("El archivo de mundo está vacío");
   }
@@ -260,7 +287,7 @@ function parsearTextoMundo(texto: string): unknown {
 }
 
 function parsearTextoPedidos(texto: string): unknown {
-  const contenido = texto.trim();
+  const contenido = limpiarTexto(texto);
   if (contenido === "") {
     throw new ErrorDataset("El archivo de pedidos está vacío");
   }
@@ -288,7 +315,7 @@ function parsearTextoPedidos(texto: string): unknown {
 }
 
 function parsearTextoVehiculos(texto: string): unknown {
-  const contenido = texto.trim();
+  const contenido = limpiarTexto(texto);
   if (contenido === "") {
     throw new ErrorDataset("El archivo de vehículos está vacío");
   }
@@ -332,22 +359,63 @@ async function leerDatasetP1(): Promise<Dataset> {
   return armarDataset(mundo, pedidos, vehiculos);
 }
 
+let colaEscritura: Promise<void> = Promise.resolve();
+
 async function escribirDb(archivo: ArchivoDb): Promise<void> {
-  await mkdir(path.dirname(RUTA_DB), { recursive: true });
-  await writeFile(RUTA_DB, `${JSON.stringify(archivo, null, 2)}\n`, "utf8");
+  const tarea = colaEscritura.then(async () => {
+    await mkdir(path.dirname(RUTA_DB), { recursive: true });
+    const temporal = `${RUTA_DB}.${process.pid}.tmp`;
+    await writeFile(temporal, `${JSON.stringify(archivo, null, 2)}\n`, "utf8");
+    await rename(temporal, RUTA_DB);
+  });
+
+  colaEscritura = tarea.catch(() => {});
+  return tarea;
+}
+
+function esErrorNoEncontrado(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "ENOENT"
+  );
+}
+
+async function leerArchivoDb(): Promise<unknown> {
+  try {
+    return await leerJson(RUTA_DB);
+  } catch (error) {
+    if (esErrorNoEncontrado(error)) return null;
+    if (error instanceof SyntaxError) {
+      throw new ErrorDataset("El archivo data/db.json no tiene JSON válido");
+    }
+    throw new ErrorDataset("No se pudo leer el archivo data/db.json");
+  }
 }
 
 export async function leerDataset(): Promise<Dataset> {
-  try {
-    const archivo = await leerJson(RUTA_DB);
-    if (esObjeto(archivo) && esObjeto(archivo.dataset)) {
-      const bruto = archivo.dataset;
-      return armarDataset(bruto.mundo, bruto.pedidos, bruto.vehiculos);
-    }
-  } catch {
-    // sin dataset subido todavía: seguimos con data/p1
+  const archivo = await leerArchivoDb();
+
+  if (archivo === null) {
+    const dataset = await leerDatasetP1();
+    await guardarDataset(dataset);
+    return dataset;
   }
-  return leerDatasetP1();
+
+  if (!esObjeto(archivo) || !esObjeto(archivo.dataset)) {
+    throw new ErrorDataset("data/db.json no contiene un dataset válido");
+  }
+
+  try {
+    const bruto = archivo.dataset;
+    return armarDataset(bruto.mundo, bruto.pedidos, bruto.vehiculos);
+  } catch (error) {
+    if (error instanceof ErrorDataset) {
+      throw new ErrorDataset(`data/db.json inválido: ${error.message}`);
+    }
+    throw error;
+  }
 }
 
 export async function guardarDataset(dataset: Dataset): Promise<void> {
@@ -374,31 +442,31 @@ export async function guardarResultado(
 }
 
 export async function leerResultado(): Promise<ResultadoPlan | null> {
-  try {
-    const archivo = await leerJson(RUTA_DB);
-    if (
-      !esObjeto(archivo) ||
-      !esObjeto(archivo.plan) ||
-      !Array.isArray(archivo.plan.rutas)
-    ) {
-      return null;
-    }
+  const archivo = await leerArchivoDb();
 
-    const plan = archivo.plan as unknown as Plan;
-    const estrategia: Estrategia =
-      archivo.estrategia === "cluster" ? "cluster" : "simple";
-    const k = typeof archivo.k === "number" ? archivo.k : null;
+  if (archivo === null) return null;
 
-    let simulacion: Simulacion | null = esObjeto(archivo.simulacion)
-      ? (archivo.simulacion as unknown as Simulacion)
-      : null;
-    if (!simulacion) {
-      // db anterior guardaba solo el plan: lo simulamos al leerlo
-      simulacion = simularPlan(await leerDataset(), plan);
-    }
+  if (!esObjeto(archivo)) {
+    throw new ErrorDataset("data/db.json no tiene una estructura válida");
+  }
 
-    return { plan, simulacion, estrategia, k };
-  } catch {
+  if (archivo.plan === null || archivo.plan === undefined) {
     return null;
   }
+
+  if (!esObjeto(archivo.plan) || !Array.isArray(archivo.plan.rutas)) {
+    throw new ErrorDataset("El plan guardado no tiene un formato válido");
+  }
+
+  const plan = archivo.plan as unknown as Plan;
+  const dataset = await leerDataset();
+  const simulacion = simularPlan(dataset, plan);
+  const estrategia: Estrategia =
+    archivo.estrategia === "cluster" ? "cluster" : "simple";
+  const k =
+    typeof archivo.k === "number" && Number.isInteger(archivo.k)
+      ? archivo.k
+      : null;
+
+  return { plan, simulacion, estrategia, k };
 }

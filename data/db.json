@@ -279,12 +279,10 @@
       {
         "vehiculo": "V1",
         "paradas": [
-          28,
           34,
           33,
           5,
           27,
-          9,
           8,
           3,
           17,
@@ -292,51 +290,120 @@
           35,
           7,
           19,
+          4,
+          22,
           14,
           12,
           10,
           24,
           36,
           20,
-          22,
-          4,
-          13,
-          11,
-          25,
-          1,
-          18,
-          26,
-          16,
+          39
+        ]
+      },
+      {
+        "vehiculo": "V2",
+        "paradas": [
+          28,
+          9,
           15,
           30,
           23,
           29,
           31,
-          2,
-          38,
-          6,
-          40,
-          32,
+          13,
+          11,
+          25,
           37,
-          39
+          32,
+          1,
+          40,
+          18,
+          26,
+          16,
+          6,
+          38,
+          2
         ]
       }
     ]
   },
   "simulacion": {
-    "costoTotal": 1172,
-    "distancia": 152,
-    "vehiculosUsados": 1,
-    "makespan": 656,
+    "costoTotal": 928,
+    "distancia": 154,
+    "vehiculosUsados": 2,
+    "makespan": 346,
     "entregados": 40,
     "sinAsignar": 0,
+    "valido": true,
+    "errores": [],
     "detalle": {
-      "costoDistancia": 456,
-      "costoVehiculos": 60,
-      "costoMinutos": 656,
+      "costoDistancia": 462,
+      "costoVehiculos": 120,
+      "costoMinutos": 346,
       "costoFallas": 0
-    }
+    },
+    "detalleRutas": [
+      {
+        "vehiculo": "V1",
+        "paradas": [
+          34,
+          33,
+          5,
+          27,
+          8,
+          3,
+          17,
+          21,
+          35,
+          7,
+          19,
+          4,
+          22,
+          14,
+          12,
+          10,
+          24,
+          36,
+          20,
+          39
+        ],
+        "distancia": 72,
+        "minutos": 316,
+        "horaRegreso": "13:16",
+        "entregas": 20
+      },
+      {
+        "vehiculo": "V2",
+        "paradas": [
+          28,
+          9,
+          15,
+          30,
+          23,
+          29,
+          31,
+          13,
+          11,
+          25,
+          37,
+          32,
+          1,
+          40,
+          18,
+          26,
+          16,
+          6,
+          38,
+          2
+        ],
+        "distancia": 82,
+        "minutos": 346,
+        "horaRegreso": "13:46",
+        "entregas": 20
+      }
+    ]
   },
   "estrategia": "cluster",
-  "k": 1
+  "k": 2
 }

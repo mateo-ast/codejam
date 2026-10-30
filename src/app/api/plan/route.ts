@@ -1,5 +1,10 @@
 import { connection, NextResponse } from "next/server";
-import { guardarResultado, leerDataset, leerResultado } from "@/lib/dataset";
+import {
+  ErrorDataset,
+  guardarResultado,
+  leerDataset,
+  leerResultado,
+} from "@/lib/dataset";
 import { generarPlan } from "@/lib/plan";
 import type { Estrategia } from "@/types/mundo";
 
@@ -11,10 +16,17 @@ export async function GET() {
   await connection();
 
   try {
-    const resultado = await leerResultado();
-    return NextResponse.json(resultado);
-  } catch {
-    return NextResponse.json(null);
+    return NextResponse.json(await leerResultado());
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudo leer el plan guardado",
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -23,7 +35,7 @@ export async function POST(request: Request) {
 
   try {
     const estrategia =
-      new URL(request.url).searchParams.get("estrategia") ?? "simple";
+      new URL(request.url).searchParams.get("estrategia") ?? "cluster";
 
     if (!esEstrategia(estrategia)) {
       return NextResponse.json(
@@ -34,10 +46,24 @@ export async function POST(request: Request) {
 
     const dataset = await leerDataset();
     const resultado = generarPlan(dataset, estrategia);
+
+    if (!resultado.simulacion.valido) {
+      return NextResponse.json(
+        {
+          error: "El plan generado es inválido",
+          errores: resultado.simulacion.errores,
+        },
+        { status: 422 },
+      );
+    }
+
     await guardarResultado(resultado, dataset);
 
     return NextResponse.json(resultado);
-  } catch {
+  } catch (error) {
+    if (error instanceof ErrorDataset) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     return NextResponse.json(
       { error: "No se pudo generar el plan" },
       { status: 500 },

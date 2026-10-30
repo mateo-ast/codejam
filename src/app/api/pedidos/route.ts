@@ -7,9 +7,14 @@ export async function GET() {
   try {
     const { pedidos } = await leerDataset();
     return NextResponse.json(pedidos);
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: "No se pudo leer el dataset activo" },
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "No se pudo leer el dataset activo",
+      },
       { status: 500 },
     );
   }

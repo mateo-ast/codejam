@@ -2,6 +2,7 @@
 
 import {
   Download,
+  FileSpreadsheet,
   ListOrdered,
   Loader2,
   Route,
@@ -21,14 +22,22 @@ const numero = new Intl.NumberFormat("es-CO");
 
 const opciones: { id: Estrategia; etiqueta: string }[] = [
   { id: "simple", etiqueta: "Simple (1 vehículo)" },
-  { id: "cluster", etiqueta: "Clusters + vecino más cercano" },
+  { id: "cluster", etiqueta: "Optimizado (flota + 2-opt)" },
 ];
 
 const descripciones: Record<Estrategia, string> = {
   simple: "Un vehículo reparte todos los pedidos en orden de id.",
   cluster:
-    "Agrupa los pedidos con k-medoides (distancia Manhattan) y arma la ruta de cada grupo con vecino más cercano. Se prueba k de 1 a la flota completa y gana el costo más bajo.",
+    "Prueba particiones por barrido angular, k-medoides y ahorros de Clarke-Wright, reparte los viajes entre la flota (con regresos DEPOSITO cuando conviene), ordena cada ruta con vecino más cercano, 2-opt y Or-opt, y elige el plan de menor costo total (incluye vehículos y makespan).",
 };
+
+function campoCsv(valor: string | number): string {
+  const texto = String(valor);
+  if (/[",\n\r]/.test(texto)) {
+    return `"${texto.replace(/"/g, '""')}"`;
+  }
+  return texto;
+}
 
 export default function Plan({ dataset, resultado, onGenerado }: Props) {
   const [estrategia, setEstrategia] = useState<Estrategia>("cluster");
@@ -59,23 +68,47 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
     }
   };
 
-  const descargar = () => {
-    if (!resultado) return;
-
-    const contenido = `${JSON.stringify(resultado.plan, null, 2)}\n`;
-    const url = URL.createObjectURL(
-      new Blob([contenido], { type: "application/json" }),
-    );
+  const descargarArchivo = (
+    nombre: string,
+    contenido: string,
+    tipo: string,
+  ) => {
+    const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
     const enlace = document.createElement("a");
     enlace.href = url;
-    enlace.download = "plan.json";
+    enlace.download = nombre;
     document.body.appendChild(enlace);
     enlace.click();
     enlace.remove();
     URL.revokeObjectURL(url);
   };
 
-  const maxK = Math.min(dataset.vehiculos.length, dataset.pedidos.length);
+  const descargarJson = () => {
+    if (!resultado) return;
+    descargarArchivo(
+      "plan.json",
+      `${JSON.stringify(resultado.plan, null, 2)}\n`,
+      "application/json",
+    );
+  };
+
+  const descargarCsv = () => {
+    if (!resultado) return;
+
+    const filas = ["vehiculo,parada"];
+    for (const ruta of resultado.plan.rutas) {
+      for (const parada of ruta.paradas) {
+        filas.push(`${campoCsv(ruta.vehiculo)},${campoCsv(parada)}`);
+      }
+    }
+
+    descargarArchivo(
+      "plan.csv",
+      `${filas.join("\n")}\n`,
+      "text/csv;charset=utf-8",
+    );
+  };
+
   const sim = resultado?.simulacion ?? null;
   const plan = resultado?.plan ?? null;
 
@@ -123,12 +156,22 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
 
           <button
             type="button"
-            onClick={descargar}
+            onClick={descargarJson}
             disabled={!resultado}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <Download className="size-4" />
-            Descargar plan.json
+            plan.json
+          </button>
+
+          <button
+            type="button"
+            onClick={descargarCsv}
+            disabled={!resultado}
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <FileSpreadsheet className="size-4" />
+            plan.csv
           </button>
         </div>
       </div>
@@ -182,7 +225,7 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
             </span>
             {resultado.estrategia === "cluster" && resultado.k !== null && (
               <span className="rounded bg-sky-100 px-2 py-1 text-sky-700 dark:bg-sky-500/20 dark:text-sky-300">
-                Probé k=1..{maxK} · mejor k = {resultado.k}
+                Mejor k = {resultado.k} · flota {dataset.vehiculos.length}
               </span>
             )}
             <span className="rounded bg-emerald-100 px-2 py-1 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300">
@@ -190,6 +233,25 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
               {sim?.sinAsignar ?? 0} fallas
             </span>
           </div>
+
+          {sim && !sim.valido && (
+            <div
+              role="alert"
+              className="flex items-start gap-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
+            >
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              <div>
+                <p className="font-semibold">
+                  Plan inválido: vale 0 puntos en este dataset
+                </p>
+                <ul className="mt-1 list-inside list-disc text-xs">
+                  {sim.errores.map((mensaje) => (
+                    <li key={mensaje}>{mensaje}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          )}
 
           {sim && (
             <div>
@@ -219,6 +281,46 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
                 {sim.sinAsignar} × {dataset.mundo.costo_por_falla} ={" "}
                 {numero.format(sim.detalle.costoFallas)}
               </p>
+            </div>
+          )}
+
+          {sim && sim.detalleRutas?.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                    <th className="py-2 pr-4 font-semibold">Vehículo</th>
+                    <th className="py-2 pr-4 font-semibold">Entregas</th>
+                    <th className="py-2 pr-4 font-semibold">Distancia</th>
+                    <th className="py-2 pr-4 font-semibold">Minutos</th>
+                    <th className="py-2 font-semibold">Regreso</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sim.detalleRutas.map((detalle) => (
+                    <tr
+                      key={detalle.vehiculo}
+                      className="border-b border-slate-100 last:border-0 dark:border-slate-900"
+                    >
+                      <td className="py-2 pr-4 font-semibold text-slate-900 dark:text-slate-100">
+                        {detalle.vehiculo}
+                      </td>
+                      <td className="py-2 pr-4 text-slate-600 dark:text-slate-300">
+                        {detalle.entregas}
+                      </td>
+                      <td className="py-2 pr-4 text-slate-600 dark:text-slate-300">
+                        {numero.format(detalle.distancia)} cuadras
+                      </td>
+                      <td className="py-2 pr-4 text-slate-600 dark:text-slate-300">
+                        {numero.format(detalle.minutos)} min
+                      </td>
+                      <td className="py-2 text-slate-600 dark:text-slate-300">
+                        {detalle.horaRegreso}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 

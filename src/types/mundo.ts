@@ -43,6 +43,15 @@ export interface Dataset {
 
 export type Estrategia = "simple" | "cluster";
 
+export interface DetalleRuta {
+  vehiculo: string;
+  paradas: Parada[];
+  distancia: number;
+  minutos: number;
+  horaRegreso: string;
+  entregas: number;
+}
+
 export interface Simulacion {
   costoTotal: number;
   distancia: number;
@@ -50,12 +59,15 @@ export interface Simulacion {
   makespan: number;
   entregados: number;
   sinAsignar: number;
+  valido: boolean;
+  errores: string[];
   detalle: {
     costoDistancia: number;
     costoVehiculos: number;
     costoMinutos: number;
     costoFallas: number;
   };
+  detalleRutas: DetalleRuta[];
 }
 
 export interface ResultadoPlan {
