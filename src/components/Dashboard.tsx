@@ -5,13 +5,13 @@ import { useCallback, useEffect, useState } from "react";
 import Matriz from "@/components/Matriz";
 import Plan from "@/components/Plan";
 import SubirDataset from "@/components/SubirDataset";
-import type { Dataset, Plan as TipoPlan } from "@/types/mundo";
+import type { Dataset, ResultadoPlan } from "@/types/mundo";
 
 type Estado = "cargando" | "listo" | "error";
 
 export default function Dashboard() {
   const [dataset, setDataset] = useState<Dataset | null>(null);
-  const [plan, setPlan] = useState<TipoPlan | null>(null);
+  const [resultado, setResultado] = useState<ResultadoPlan | null>(null);
   const [estado, setEstado] = useState<Estado>("cargando");
   const [error, setError] = useState<string | null>(null);
 
@@ -32,11 +32,11 @@ export default function Dashboard() {
 
       const datosDataset = (await respuestaDataset.json()) as Dataset;
       const datosPlan = respuestaPlan.ok
-        ? ((await respuestaPlan.json()) as TipoPlan | null)
+        ? ((await respuestaPlan.json()) as ResultadoPlan | null)
         : null;
 
       setDataset(datosDataset);
-      setPlan(datosPlan);
+      setResultado(datosPlan);
       setEstado("listo");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error desconocido");
@@ -50,11 +50,11 @@ export default function Dashboard() {
 
   const alCargarDataset = (nuevoDataset: Dataset) => {
     setDataset(nuevoDataset);
-    setPlan(null);
+    setResultado(null);
   };
 
-  const alGenerarPlan = (nuevoPlan: TipoPlan) => {
-    setPlan(nuevoPlan);
+  const alGenerarPlan = (nuevoResultado: ResultadoPlan) => {
+    setResultado(nuevoResultado);
   };
 
   if (estado === "cargando") {
@@ -100,7 +100,11 @@ export default function Dashboard() {
         pedidos={dataset.pedidos}
         vehiculos={dataset.vehiculos}
       />
-      <Plan plan={plan} onGenerado={alGenerarPlan} />
+      <Plan
+        dataset={dataset}
+        resultado={resultado}
+        onGenerado={alGenerarPlan}
+      />
     </div>
   );
 }

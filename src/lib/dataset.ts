@@ -1,6 +1,16 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { Dataset, Mundo, Pedido, Plan, Vehiculo } from "@/types/mundo";
+import { simularPlan } from "@/lib/simulacion";
+import type {
+  Dataset,
+  Estrategia,
+  Mundo,
+  Pedido,
+  Plan,
+  ResultadoPlan,
+  Simulacion,
+  Vehiculo,
+} from "@/types/mundo";
 
 const RUTA_DB = path.join(process.cwd(), "data", "db.json");
 const RUTA_P1 = path.join(process.cwd(), "data", "p1");
@@ -8,6 +18,9 @@ const RUTA_P1 = path.join(process.cwd(), "data", "p1");
 interface ArchivoDb {
   dataset?: unknown;
   plan?: unknown;
+  simulacion?: unknown;
+  estrategia?: unknown;
+  k?: unknown;
 }
 
 export class ErrorDataset extends Error {
@@ -338,24 +351,53 @@ export async function leerDataset(): Promise<Dataset> {
 }
 
 export async function guardarDataset(dataset: Dataset): Promise<void> {
-  await escribirDb({ dataset, plan: null });
+  await escribirDb({
+    dataset,
+    plan: null,
+    simulacion: null,
+    estrategia: null,
+    k: null,
+  });
 }
 
-export async function guardarPlan(plan: Plan, dataset: Dataset): Promise<void> {
-  await escribirDb({ dataset, plan });
+export async function guardarResultado(
+  resultado: ResultadoPlan,
+  dataset: Dataset,
+): Promise<void> {
+  await escribirDb({
+    dataset,
+    plan: resultado.plan,
+    simulacion: resultado.simulacion,
+    estrategia: resultado.estrategia,
+    k: resultado.k,
+  });
 }
 
-export async function leerPlan(): Promise<Plan | null> {
+export async function leerResultado(): Promise<ResultadoPlan | null> {
   try {
     const archivo = await leerJson(RUTA_DB);
     if (
-      esObjeto(archivo) &&
-      esObjeto(archivo.plan) &&
-      Array.isArray(archivo.plan.rutas)
+      !esObjeto(archivo) ||
+      !esObjeto(archivo.plan) ||
+      !Array.isArray(archivo.plan.rutas)
     ) {
-      return archivo.plan as unknown as Plan;
+      return null;
     }
-    return null;
+
+    const plan = archivo.plan as unknown as Plan;
+    const estrategia: Estrategia =
+      archivo.estrategia === "cluster" ? "cluster" : "simple";
+    const k = typeof archivo.k === "number" ? archivo.k : null;
+
+    let simulacion: Simulacion | null = esObjeto(archivo.simulacion)
+      ? (archivo.simulacion as unknown as Simulacion)
+      : null;
+    if (!simulacion) {
+      // db anterior guardaba solo el plan: lo simulamos al leerlo
+      simulacion = simularPlan(await leerDataset(), plan);
+    }
+
+    return { plan, simulacion, estrategia, k };
   } catch {
     return null;
   }

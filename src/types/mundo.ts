@@ -40,3 +40,27 @@ export interface Dataset {
   vehiculos: Vehiculo[];
   pedidos: Pedido[];
 }
+
+export type Estrategia = "simple" | "cluster";
+
+export interface Simulacion {
+  costoTotal: number;
+  distancia: number;
+  vehiculosUsados: number;
+  makespan: number;
+  entregados: number;
+  sinAsignar: number;
+  detalle: {
+    costoDistancia: number;
+    costoVehiculos: number;
+    costoMinutos: number;
+    costoFallas: number;
+  };
+}
+
+export interface ResultadoPlan {
+  plan: Plan;
+  simulacion: Simulacion;
+  estrategia: Estrategia;
+  k: number | null;
+}
