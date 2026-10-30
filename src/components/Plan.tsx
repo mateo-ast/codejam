@@ -99,7 +99,9 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
           {sim && <TablaRutas simulacion={sim} />}
           {plan.rutas.length === 0 ? (
             <p className="rounded-lg border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">
-              No hay pedidos ni vehículos para armar un plan.
+              {sim && sim.sinAsignar > 0
+                ? "El plan no asigna pedidos: conviene pagar las fallas."
+                : "No hay pedidos ni vehículos para armar un plan."}
             </p>
           ) : (
             <TablaParadas dataset={dataset} plan={plan} />

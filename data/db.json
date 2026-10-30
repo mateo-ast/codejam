@@ -3,8 +3,8 @@
     "mundo": {
       "grilla_ancho": 20,
       "grilla_alto": 20,
-      "deposito_x": 10,
-      "deposito_y": 10,
+      "deposito_x": 0,
+      "deposito_y": 0,
       "hora_salida": "08:00",
       "tiempo_servicio": 5,
       "tiempo_carga": 10,
@@ -18,282 +18,282 @@
     "pedidos": [
       {
         "id": 1,
-        "x": 17,
-        "y": 14,
-        "peso": 11,
+        "x": 18,
+        "y": 6,
+        "peso": 20,
         "premium": false
       },
       {
         "id": 2,
-        "x": 17,
-        "y": 10,
-        "peso": 20,
+        "x": 7,
+        "y": 18,
+        "peso": 14,
         "premium": false
       },
       {
         "id": 3,
         "x": 4,
-        "y": 0,
+        "y": 8,
         "peso": 6,
         "premium": false
       },
       {
         "id": 4,
-        "x": 0,
-        "y": 4,
-        "peso": 15,
+        "x": 8,
+        "y": 11,
+        "peso": 17,
         "premium": false
       },
       {
         "id": 5,
-        "x": 12,
-        "y": 8,
-        "peso": 2,
+        "x": 0,
+        "y": 6,
+        "peso": 11,
         "premium": false
       },
       {
         "id": 6,
-        "x": 19,
-        "y": 14,
-        "peso": 12,
+        "x": 17,
+        "y": 2,
+        "peso": 11,
         "premium": false
       },
       {
         "id": 7,
-        "x": 7,
-        "y": 12,
-        "peso": 5,
+        "x": 13,
+        "y": 17,
+        "peso": 14,
         "premium": false
       },
       {
         "id": 8,
-        "x": 4,
+        "x": 2,
         "y": 10,
-        "peso": 8,
+        "peso": 19,
         "premium": false
       },
       {
         "id": 9,
-        "x": 5,
-        "y": 12,
-        "peso": 1,
+        "x": 6,
+        "y": 17,
+        "peso": 8,
         "premium": false
       },
       {
         "id": 10,
-        "x": 14,
-        "y": 14,
-        "peso": 15,
+        "x": 16,
+        "y": 13,
+        "peso": 20,
         "premium": false
       },
       {
         "id": 11,
-        "x": 10,
-        "y": 8,
-        "peso": 2,
+        "x": 13,
+        "y": 2,
+        "peso": 18,
         "premium": false
       },
       {
         "id": 12,
-        "x": 19,
+        "x": 2,
+        "y": 15,
+        "peso": 16,
+        "premium": true
+      },
+      {
+        "id": 13,
+        "x": 15,
         "y": 8,
         "peso": 19,
         "premium": false
       },
       {
-        "id": 13,
-        "x": 0,
-        "y": 18,
-        "peso": 9,
+        "id": 14,
+        "x": 5,
+        "y": 19,
+        "peso": 13,
         "premium": false
       },
       {
-        "id": 14,
+        "id": 15,
+        "x": 9,
+        "y": 8,
+        "peso": 1,
+        "premium": false
+      },
+      {
+        "id": 16,
+        "x": 14,
+        "y": 13,
+        "peso": 6,
+        "premium": false
+      },
+      {
+        "id": 17,
+        "x": 2,
+        "y": 9,
+        "peso": 16,
+        "premium": true
+      },
+      {
+        "id": 18,
+        "x": 5,
+        "y": 16,
+        "peso": 8,
+        "premium": false
+      },
+      {
+        "id": 19,
+        "x": 3,
+        "y": 2,
+        "peso": 12,
+        "premium": false
+      },
+      {
+        "id": 20,
+        "x": 13,
+        "y": 6,
+        "peso": 14,
+        "premium": false
+      },
+      {
+        "id": 21,
+        "x": 7,
+        "y": 10,
+        "peso": 3,
+        "premium": false
+      },
+      {
+        "id": 22,
+        "x": 14,
+        "y": 19,
+        "peso": 15,
+        "premium": false
+      },
+      {
+        "id": 23,
+        "x": 18,
+        "y": 14,
+        "peso": 12,
+        "premium": true
+      },
+      {
+        "id": 24,
         "x": 19,
+        "y": 2,
+        "peso": 4,
+        "premium": false
+      },
+      {
+        "id": 25,
+        "x": 4,
+        "y": 17,
+        "peso": 2,
+        "premium": false
+      },
+      {
+        "id": 26,
+        "x": 13,
+        "y": 8,
+        "peso": 3,
+        "premium": false
+      },
+      {
+        "id": 27,
+        "x": 18,
+        "y": 3,
+        "peso": 10,
+        "premium": false
+      },
+      {
+        "id": 28,
+        "x": 16,
+        "y": 11,
+        "peso": 7,
+        "premium": false
+      },
+      {
+        "id": 29,
+        "x": 5,
+        "y": 13,
+        "peso": 6,
+        "premium": false
+      },
+      {
+        "id": 30,
+        "x": 5,
+        "y": 18,
+        "peso": 19,
+        "premium": false
+      },
+      {
+        "id": 31,
+        "x": 18,
+        "y": 16,
+        "peso": 1,
+        "premium": false
+      },
+      {
+        "id": 32,
+        "x": 15,
+        "y": 16,
+        "peso": 17,
+        "premium": false
+      },
+      {
+        "id": 33,
+        "x": 16,
+        "y": 5,
+        "peso": 4,
+        "premium": false
+      },
+      {
+        "id": 34,
+        "x": 9,
+        "y": 15,
+        "peso": 17,
+        "premium": false
+      },
+      {
+        "id": 35,
+        "x": 1,
         "y": 5,
         "peso": 11,
         "premium": false
       },
       {
-        "id": 15,
-        "x": 18,
-        "y": 15,
-        "peso": 13,
-        "premium": false
-      },
-      {
-        "id": 16,
-        "x": 15,
-        "y": 9,
-        "peso": 13,
-        "premium": false
-      },
-      {
-        "id": 17,
-        "x": 11,
-        "y": 11,
-        "peso": 16,
-        "premium": false
-      },
-      {
-        "id": 18,
-        "x": 11,
-        "y": 0,
-        "peso": 6,
-        "premium": false
-      },
-      {
-        "id": 19,
-        "x": 10,
-        "y": 17,
-        "peso": 11,
-        "premium": false
-      },
-      {
-        "id": 20,
-        "x": 18,
-        "y": 9,
-        "peso": 4,
-        "premium": false
-      },
-      {
-        "id": 21,
-        "x": 8,
-        "y": 9,
-        "peso": 17,
-        "premium": false
-      },
-      {
-        "id": 22,
-        "x": 10,
-        "y": 15,
-        "peso": 13,
-        "premium": false
-      },
-      {
-        "id": 23,
-        "x": 5,
-        "y": 8,
-        "peso": 4,
-        "premium": false
-      },
-      {
-        "id": 24,
-        "x": 17,
-        "y": 9,
-        "peso": 13,
-        "premium": false
-      },
-      {
-        "id": 25,
-        "x": 16,
-        "y": 11,
-        "peso": 10,
-        "premium": false
-      },
-      {
-        "id": 26,
-        "x": 2,
-        "y": 19,
-        "peso": 16,
-        "premium": false
-      },
-      {
-        "id": 27,
-        "x": 0,
-        "y": 2,
-        "peso": 3,
-        "premium": false
-      },
-      {
-        "id": 28,
-        "x": 7,
-        "y": 4,
-        "peso": 13,
-        "premium": false
-      },
-      {
-        "id": 29,
-        "x": 15,
-        "y": 17,
-        "peso": 7,
-        "premium": false
-      },
-      {
-        "id": 30,
-        "x": 16,
-        "y": 1,
-        "peso": 20,
-        "premium": false
-      },
-      {
-        "id": 31,
-        "x": 13,
-        "y": 12,
-        "peso": 4,
-        "premium": false
-      },
-      {
-        "id": 32,
-        "x": 2,
-        "y": 4,
-        "peso": 13,
-        "premium": false
-      },
-      {
-        "id": 33,
-        "x": 17,
-        "y": 19,
-        "peso": 3,
-        "premium": false
-      },
-      {
-        "id": 34,
-        "x": 4,
-        "y": 17,
-        "peso": 12,
-        "premium": false
-      },
-      {
-        "id": 35,
-        "x": 4,
-        "y": 4,
-        "peso": 11,
-        "premium": false
-      },
-      {
         "id": 36,
-        "x": 12,
-        "y": 12,
-        "peso": 20,
+        "x": 0,
+        "y": 4,
+        "peso": 9,
         "premium": false
       },
       {
         "id": 37,
-        "x": 9,
-        "y": 11,
-        "peso": 7,
+        "x": 2,
+        "y": 18,
+        "peso": 16,
         "premium": false
       },
       {
         "id": 38,
-        "x": 13,
-        "y": 4,
-        "peso": 2,
-        "premium": false
+        "x": 19,
+        "y": 8,
+        "peso": 10,
+        "premium": true
       },
       {
         "id": 39,
-        "x": 1,
-        "y": 19,
-        "peso": 8,
-        "premium": false
+        "x": 15,
+        "y": 2,
+        "peso": 7,
+        "premium": true
       },
       {
         "id": 40,
-        "x": 13,
-        "y": 1,
-        "peso": 18,
+        "x": 14,
+        "y": 11,
+        "peso": 20,
         "premium": false
       }
     ],
@@ -320,154 +320,138 @@
       {
         "vehiculo": "V1",
         "paradas": [
-          11,
-          5,
+          39,
+          24,
           38,
-          30,
-          40,
-          18,
-          3,
-          27,
-          4,
-          32,
-          35,
-          28,
           23,
-          21
+          31,
+          32,
+          10,
+          16,
+          40,
+          28,
+          13,
+          26,
+          20,
+          33,
+          1,
+          27,
+          6,
+          11,
+          19
         ]
       },
       {
         "vehiculo": "V2",
         "paradas": [
+          35,
           17,
-          36,
-          31,
-          10,
-          29,
-          33,
-          1,
-          15,
-          6,
-          14,
-          12,
-          20,
-          24,
-          2,
-          25,
-          16
-        ]
-      },
-      {
-        "vehiculo": "V3",
-        "paradas": [
-          37,
-          7,
-          9,
           8,
+          12,
+          37,
+          30,
+          14,
+          18,
+          29,
+          21,
+          15,
+          4,
           34,
-          26,
-          39,
-          13,
-          19,
-          22
+          7,
+          22,
+          2,
+          9,
+          25,
+          3,
+          5,
+          36
         ]
       }
     ]
   },
   "simulacion": {
-    "costoTotal": 868,
-    "distancia": 150,
-    "vehiculosUsados": 3,
-    "makespan": 238,
+    "costoTotal": 1392,
+    "distancia": 178,
+    "vehiculosUsados": 2,
+    "makespan": 375,
     "entregados": 40,
-    "premiumEntregados": 0,
-    "minutosPremium": 0,
+    "premiumEntregados": 5,
+    "minutosPremium": 363,
     "sinAsignar": 0,
     "valido": true,
     "errores": [],
     "detalle": {
-      "costoDistancia": 450,
-      "costoVehiculos": 180,
-      "costoMinutos": 238,
-      "costoPremium": 0,
+      "costoDistancia": 534,
+      "costoVehiculos": 120,
+      "costoMinutos": 375,
+      "costoPremium": 363,
       "costoFallas": 0
     },
     "detalleRutas": [
       {
         "vehiculo": "V1",
         "paradas": [
-          11,
-          5,
+          39,
+          24,
           38,
-          30,
-          40,
-          18,
-          3,
-          27,
-          4,
-          32,
-          35,
-          28,
           23,
-          21
+          31,
+          32,
+          10,
+          16,
+          40,
+          28,
+          13,
+          26,
+          20,
+          33,
+          1,
+          27,
+          6,
+          11,
+          19
         ],
-        "distancia": 56,
-        "minutos": 238,
-        "horaRegreso": "11:58",
-        "entregas": 14,
-        "premiumEntregados": 0,
-        "minutosPremium": 0
+        "distancia": 88,
+        "minutos": 359,
+        "horaRegreso": "13:59",
+        "entregas": 19,
+        "premiumEntregados": 3,
+        "minutosPremium": 259
       },
       {
         "vehiculo": "V2",
         "paradas": [
+          35,
           17,
-          36,
-          31,
-          10,
-          29,
-          33,
-          1,
-          15,
-          6,
-          14,
-          12,
-          20,
-          24,
-          2,
-          25,
-          16
-        ],
-        "distancia": 52,
-        "minutos": 236,
-        "horaRegreso": "11:56",
-        "entregas": 16,
-        "premiumEntregados": 0,
-        "minutosPremium": 0
-      },
-      {
-        "vehiculo": "V3",
-        "paradas": [
-          37,
-          7,
-          9,
           8,
+          12,
+          37,
+          30,
+          14,
+          18,
+          29,
+          21,
+          15,
+          4,
           34,
-          26,
-          39,
-          13,
-          19,
-          22
+          7,
+          22,
+          2,
+          9,
+          25,
+          3,
+          5,
+          36
         ],
-        "distancia": 42,
-        "minutos": 176,
-        "horaRegreso": "10:56",
-        "entregas": 10,
-        "premiumEntregados": 0,
-        "minutosPremium": 0
+        "distancia": 90,
+        "minutos": 375,
+        "horaRegreso": "14:15",
+        "entregas": 21,
+        "premiumEntregados": 2,
+        "minutosPremium": 104
       }
     ]
   },
   "estrategia": "cluster",
-  "k": 3
+  "k": 2
 }

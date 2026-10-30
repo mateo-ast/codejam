@@ -18,6 +18,7 @@ import {
 } from "@/lib/plan/constantes";
 import { depositoDe } from "@/lib/plan/geometria";
 import { optimizarGlobal, optimizarLocal } from "@/lib/plan/optimizacion";
+import { podarResultado } from "@/lib/plan/poda";
 import { construirRuta, crearViaje } from "@/lib/plan/rutas/construccion";
 import { agregarCandidato, seleccionarMejor } from "@/lib/plan/seleccion";
 import type { Viaje } from "@/lib/plan/tipos";
@@ -133,7 +134,7 @@ export function generarPlanClusteres(dataset: Dataset): ResultadoPlan {
     const usarKMedoides = pedidos.length <= MAX_PEDIDOS_KMEDOIDES;
 
     const agregar = (plan: Plan) => {
-      agregarCandidato(candidatos, dataset, plan, pedidos);
+      agregarCandidato(candidatos, dataset, plan);
     };
 
     for (let k = 1; k <= maxParticiones; k += 1) {
@@ -170,7 +171,7 @@ export function generarPlanClusteres(dataset: Dataset): ResultadoPlan {
     }
   }
 
-  const mejor = seleccionarMejor(candidatos, pedidos);
+  const mejor = seleccionarMejor(candidatos);
 
   if (mejor === null) {
     const plan: Plan = { rutas: [] };
@@ -189,8 +190,10 @@ export function generarPlan(
   dataset: Dataset,
   estrategia: Estrategia,
 ): ResultadoPlan {
-  if (estrategia === "cluster") {
-    return generarPlanClusteres(dataset);
-  }
-  return generarPlanSimple(dataset);
+  const resultado =
+    estrategia === "cluster"
+      ? generarPlanClusteres(dataset)
+      : generarPlanSimple(dataset);
+
+  return podarResultado(dataset, resultado);
 }

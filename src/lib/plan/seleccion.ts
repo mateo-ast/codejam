@@ -1,5 +1,5 @@
 import { simularPlan } from "@/lib/simulacion";
-import type { Dataset, Pedido, Plan, ResultadoPlan } from "@/types/mundo";
+import type { Dataset, Plan, ResultadoPlan } from "@/types/mundo";
 
 export function esMejor(actual: ResultadoPlan, mejor: ResultadoPlan): boolean {
   if (actual.simulacion.valido !== mejor.simulacion.valido) {
@@ -7,6 +7,9 @@ export function esMejor(actual: ResultadoPlan, mejor: ResultadoPlan): boolean {
   }
   if (actual.simulacion.costoTotal !== mejor.simulacion.costoTotal) {
     return actual.simulacion.costoTotal < mejor.simulacion.costoTotal;
+  }
+  if (actual.simulacion.entregados !== mejor.simulacion.entregados) {
+    return actual.simulacion.entregados > mejor.simulacion.entregados;
   }
   if (actual.simulacion.vehiculosUsados !== mejor.simulacion.vehiculosUsados) {
     return actual.simulacion.vehiculosUsados < mejor.simulacion.vehiculosUsados;
@@ -18,11 +21,10 @@ export function agregarCandidato(
   candidatos: ResultadoPlan[],
   dataset: Dataset,
   plan: Plan,
-  pedidos: Pedido[],
 ): void {
   const simulacion = simularPlan(dataset, plan);
 
-  if (!simulacion.valido || simulacion.entregados < pedidos.length) {
+  if (!simulacion.valido) {
     return;
   }
 
@@ -36,12 +38,11 @@ export function agregarCandidato(
 
 export function seleccionarMejor(
   candidatos: ResultadoPlan[],
-  pedidos: Pedido[],
 ): ResultadoPlan | null {
   let mejor: ResultadoPlan | null = null;
 
   for (const candidato of candidatos) {
-    if (candidato.simulacion.entregados < pedidos.length) continue;
+    if (!candidato.simulacion.valido) continue;
     if (mejor === null || esMejor(candidato, mejor)) {
       mejor = candidato;
     }
