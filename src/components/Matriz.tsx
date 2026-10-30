@@ -1,6 +1,6 @@
 "use client";
 
-import { MapPin, Package, Truck, Warehouse } from "lucide-react";
+import { MapPin, Package, Star, Truck, Warehouse } from "lucide-react";
 import { useMemo } from "react";
 import type { Mundo, Pedido, Vehiculo } from "@/types/mundo";
 
@@ -29,6 +29,11 @@ export default function Matriz({ mundo, pedidos, vehiculos }: Props) {
 
   const pesoTotal = useMemo(
     () => pedidos.reduce((total, pedido) => total + pedido.peso, 0),
+    [pedidos],
+  );
+
+  const premiumTotal = useMemo(
+    () => pedidos.filter((pedido) => pedido.premium).length,
     [pedidos],
   );
 
@@ -62,8 +67,13 @@ export default function Matriz({ mundo, pedidos, vehiculos }: Props) {
             Pedido
           </span>
           <span className="inline-flex items-center gap-1.5">
+            <span className="size-3 rounded-sm bg-fuchsia-500/70" />
+            Premium
+          </span>
+          <span className="inline-flex items-center gap-1.5">
             <Package className="size-3.5" />
-            {pedidos.length} pedidos · {numero.format(pesoTotal)} kg
+            {pedidos.length} pedidos · {premiumTotal} premium ·{" "}
+            {numero.format(pesoTotal)} kg
           </span>
           <span className="inline-flex items-center gap-1.5">
             <Truck className="size-3.5" />
@@ -96,16 +106,29 @@ export default function Matriz({ mundo, pedidos, vehiculos }: Props) {
               }
 
               if (pedidosCelda.length > 0) {
+                const tienePremium = pedidosCelda.some(
+                  (pedido) => pedido.premium,
+                );
                 const detalle = pedidosCelda
-                  .map((pedido) => `#${pedido.id} · ${pedido.peso} kg`)
+                  .map(
+                    (pedido) =>
+                      `#${pedido.id} · ${pedido.peso} kg${pedido.premium ? " · premium" : ""}`,
+                  )
                   .join("\n");
 
                 return (
                   <div
                     key={`${x}-${y}`}
                     title={`Pedido en (${x}, ${y})\n${detalle}`}
-                    className="relative flex aspect-square flex-col items-center justify-center bg-sky-100 leading-none text-sky-800 dark:bg-sky-500/20 dark:text-sky-200"
+                    className={
+                      tienePremium
+                        ? "relative flex aspect-square flex-col items-center justify-center bg-fuchsia-100 leading-none text-fuchsia-800 dark:bg-fuchsia-500/20 dark:text-fuchsia-200"
+                        : "relative flex aspect-square flex-col items-center justify-center bg-sky-100 leading-none text-sky-800 dark:bg-sky-500/20 dark:text-sky-200"
+                    }
                   >
+                    {tienePremium && (
+                      <Star className="absolute left-0.5 top-0.5 size-2 fill-current sm:size-2.5" />
+                    )}
                     <span className="text-[7px] font-bold sm:text-[9px]">
                       {pedidosCelda.map((pedido) => `#${pedido.id}`).join(" ")}
                     </span>

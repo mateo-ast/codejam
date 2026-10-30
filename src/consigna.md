@@ -94,3 +94,23 @@ costo = costo_por_cuadra × distancia total (cuadras, todos los vehículos)
 - costo_por_falla × pedidos que fallan
 
 Menor es mejor. Hay más vehículos de los estrictamente necesarios: decidir cuántos usar es parte del problema.
+
+# clientes premium
+
+Algunos clientes pagan por recibir antes. Ahora importa no solo entregar, sino cuándo.
+
+## Qué cambia
+
+Los pedidos pueden traer el campo premium (booleano; si falta, es falso).
+El mundo trae costo_por_minuto_premium (por defecto 1).
+El costo suma un término nuevo: por cada pedido premium entregado, los minutos desde
+la hora_salida hasta que empieza su entrega.
+
+- costo_por_minuto_premium × Σ minutos desde la salida hasta la entrega de cada premium entregado
+
+Formato
+{ "id": 2, "x": 6, "y": 14, "peso": 4, "premium": true }
+id,x,y,peso,premium
+1,15,8,12,0
+2,6,14,4,1
+En CSV, los booleanos van como 1 / 0 (también se aceptan true / false y si / no ).

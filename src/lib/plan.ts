@@ -2,6 +2,7 @@ import { simularPlan } from "@/lib/simulacion";
 import type {
   Dataset,
   Estrategia,
+  Mundo,
   Pedido,
   Plan,
   ResultadoPlan,
@@ -333,7 +334,11 @@ function mejorarConOrOpt(entrada: Pedido[], deposito: Punto): Pedido[] {
   return ruta;
 }
 
-function construirRuta(pedidos: Pedido[], deposito: Punto): Pedido[] {
+function construirRuta(
+  pedidos: Pedido[],
+  deposito: Punto,
+  mundo: Mundo,
+): Pedido[] {
   if (pedidos.length <= 1) return [...pedidos];
 
   const inicial = ordenarPorVecinoMasCercano(pedidos, deposito);
@@ -341,12 +346,116 @@ function construirRuta(pedidos: Pedido[], deposito: Punto): Pedido[] {
   if (ruta.length <= 400) {
     ruta = mejorarConOrOpt(ruta, deposito);
   }
+
+  if (!pedidos.some((pedido) => pedido.premium)) {
+    return ruta;
+  }
+
+  const premiumPrimero = ordenarPremiumPrimero(pedidos, deposito);
+  const rutaPremium =
+    premiumPrimero.length <= 120
+      ? mejorarConPremium(premiumPrimero, deposito, mundo)
+      : premiumPrimero;
+
+  return mejorCostoRuta(rutaPremium, ruta, deposito, mundo)
+    ? rutaPremium
+    : ruta;
+}
+
+function costoRuta(pedidos: Pedido[], deposito: Punto, mundo: Mundo): number {
+  let minutos = 0;
+  let distancia = 0;
+  let minutosPremium = 0;
+  let actual = deposito;
+
+  for (const pedido of pedidos) {
+    const cuadras = distanciaManhattan(actual, pedido);
+    distancia += cuadras;
+    minutos += cuadras * mundo.min_por_cuadra;
+    if (pedido.premium) minutosPremium += minutos;
+    minutos += mundo.tiempo_servicio;
+    actual = pedido;
+  }
+
+  const vuelta = distanciaManhattan(actual, deposito);
+  distancia += vuelta;
+  minutos += vuelta * mundo.min_por_cuadra;
+
+  return (
+    distancia * mundo.costo_por_cuadra +
+    minutosPremium * mundo.costo_por_minuto_premium +
+    minutos * mundo.costo_por_minuto_total
+  );
+}
+
+function mejorCostoRuta(
+  candidata: Pedido[],
+  actual: Pedido[],
+  deposito: Punto,
+  mundo: Mundo,
+): boolean {
+  return (
+    costoRuta(candidata, deposito, mundo) < costoRuta(actual, deposito, mundo)
+  );
+}
+
+function ordenarPremiumPrimero(pedidos: Pedido[], deposito: Punto): Pedido[] {
+  const premium = pedidos.filter((pedido) => pedido.premium);
+  const resto = pedidos.filter((pedido) => !pedido.premium);
+  const orden: Pedido[] = [];
+  let actual = deposito;
+
+  for (const grupo of [premium, resto]) {
+    if (grupo.length === 0) continue;
+    const tramo = ordenarPorVecinoMasCercano(grupo, actual);
+    orden.push(...tramo);
+    actual = tramo[tramo.length - 1];
+  }
+
+  return orden;
+}
+
+function mejorarConPremium(
+  entrada: Pedido[],
+  deposito: Punto,
+  mundo: Mundo,
+): Pedido[] {
+  if (entrada.length < 2) return [...entrada];
+
+  let ruta = [...entrada];
+  let mejorCosto = costoRuta(ruta, deposito, mundo);
+  const maxPasadas = ruta.length <= 30 ? 10 : ruta.length <= 80 ? 5 : 2;
+
+  for (let pasada = 0; pasada < maxPasadas; pasada += 1) {
+    let huboMejora = false;
+
+    for (let origen = 0; origen < ruta.length; origen += 1) {
+      for (let destino = 0; destino < ruta.length; destino += 1) {
+        if (origen === destino) continue;
+
+        const candidata = [...ruta];
+        const [pedido] = candidata.splice(origen, 1);
+        candidata.splice(destino, 0, pedido);
+        const costo = costoRuta(candidata, deposito, mundo);
+
+        if (costo < mejorCosto - 0.000001) {
+          ruta = candidata;
+          mejorCosto = costo;
+          huboMejora = true;
+        }
+      }
+    }
+
+    if (!huboMejora) break;
+  }
+
   return ruta;
 }
 
 interface Viaje {
   paradas: number[];
   distancia: number;
+  premium: number;
 }
 
 function distanciaDeRuta(pedidos: Pedido[], deposito: Punto): number {
@@ -396,7 +505,12 @@ function planConViajes(
 
   const orden = viajes
     .map((_, indice) => indice)
-    .sort((a, b) => viajes[b].distancia - viajes[a].distancia || a - b);
+    .sort((a, b) => {
+      const premiumA = viajes[a].premium > 0 ? 0 : 1;
+      const premiumB = viajes[b].premium > 0 ? 0 : 1;
+      if (premiumA !== premiumB) return premiumA - premiumB;
+      return viajes[b].distancia - viajes[a].distancia || a - b;
+    });
 
   for (const indice of orden) {
     let elegido = 0;
@@ -408,6 +522,15 @@ function planConViajes(
 
     asignados[elegido].push(indice);
     cargas[elegido] += viajes[indice].distancia;
+  }
+
+  for (let vehiculo = 0; vehiculo < cantidad; vehiculo += 1) {
+    asignados[vehiculo].sort((a, b) => {
+      const premiumA = viajes[a].premium > 0 ? 0 : 1;
+      const premiumB = viajes[b].premium > 0 ? 0 : 1;
+      if (premiumA !== premiumB) return premiumA - premiumB;
+      return viajes[a].distancia - viajes[b].distancia || a - b;
+    });
   }
 
   const rutas: Ruta[] = [];
@@ -530,7 +653,7 @@ function construirPlanSimple(dataset: Dataset): Plan {
   }
 
   const paradas = [...dataset.pedidos]
-    .sort((a, b) => a.id - b.id)
+    .sort((a, b) => Number(b.premium) - Number(a.premium) || a.id - b.id)
     .map((pedido) => pedido.id);
 
   return { rutas: [{ vehiculo: vehiculo.id, paradas }] };
@@ -625,10 +748,11 @@ export function generarPlanClusteres(dataset: Dataset): ResultadoPlan {
 
         for (const cluster of clusters) {
           if (cluster.length === 0) continue;
-          const orden = construirRuta(cluster, deposito);
+          const orden = construirRuta(cluster, deposito, dataset.mundo);
           viajes.push({
             paradas: orden.map((pedido) => pedido.id),
             distancia: distanciaDeRuta(orden, deposito),
+            premium: orden.filter((pedido) => pedido.premium).length,
           });
         }
 

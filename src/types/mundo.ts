@@ -10,6 +10,7 @@ export interface Mundo {
   costo_por_cuadra: number;
   costo_por_vehiculo: number;
   costo_por_minuto_total: number;
+  costo_por_minuto_premium: number;
   costo_por_falla: number;
 }
 
@@ -18,6 +19,7 @@ export interface Pedido {
   x: number;
   y: number;
   peso: number;
+  premium: boolean;
 }
 
 export interface Vehiculo {
@@ -50,6 +52,8 @@ export interface DetalleRuta {
   minutos: number;
   horaRegreso: string;
   entregas: number;
+  premiumEntregados: number;
+  minutosPremium: number;
 }
 
 export interface Simulacion {
@@ -58,6 +62,8 @@ export interface Simulacion {
   vehiculosUsados: number;
   makespan: number;
   entregados: number;
+  premiumEntregados: number;
+  minutosPremium: number;
   sinAsignar: number;
   valido: boolean;
   errores: string[];
@@ -65,6 +71,7 @@ export interface Simulacion {
     costoDistancia: number;
     costoVehiculos: number;
     costoMinutos: number;
+    costoPremium: number;
     costoFallas: number;
   };
   detalleRutas: DetalleRuta[];

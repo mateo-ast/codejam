@@ -6,6 +6,7 @@ import {
   ListOrdered,
   Loader2,
   Route,
+  Star,
   TriangleAlert,
   Truck,
 } from "lucide-react";
@@ -26,9 +27,10 @@ const opciones: { id: Estrategia; etiqueta: string }[] = [
 ];
 
 const descripciones: Record<Estrategia, string> = {
-  simple: "Un vehículo reparte todos los pedidos en orden de id.",
+  simple:
+    "Un vehículo reparte todos los pedidos priorizando los premium y luego en orden de id.",
   cluster:
-    "Prueba particiones por barrido angular, k-medoides y ahorros de Clarke-Wright, reparte los viajes entre la flota (con regresos DEPOSITO cuando conviene), ordena cada ruta con vecino más cercano, 2-opt y Or-opt, y elige el plan de menor costo total (incluye vehículos y makespan).",
+    "Prueba particiones por barrido angular, k-medoides y ahorros de Clarke-Wright, reparte los viajes entre la flota (con regresos DEPOSITO cuando conviene), ordena cada ruta con vecino más cercano, 2-opt y Or-opt, adelanta los pedidos premium y elige el plan de menor costo total (incluye vehículos, makespan y minutos premium).",
 };
 
 function campoCsv(valor: string | number): string {
@@ -111,6 +113,9 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
 
   const sim = resultado?.simulacion ?? null;
   const plan = resultado?.plan ?? null;
+  const premiumPorId = new Map(
+    dataset.pedidos.map((pedido) => [pedido.id, pedido.premium]),
+  );
 
   const resumen = sim
     ? [
@@ -121,6 +126,10 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
         },
         { etiqueta: "Vehículos usados", valor: `${sim.vehiculosUsados}` },
         { etiqueta: "Makespan", valor: `${numero.format(sim.makespan)} min` },
+        {
+          etiqueta: "Premium",
+          valor: `${sim.premiumEntregados} · ${numero.format(sim.minutosPremium)} min`,
+        },
       ]
     : [];
 
@@ -232,6 +241,13 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
               {sim?.entregados ?? 0}/{dataset.pedidos.length} entregas ·{" "}
               {sim?.sinAsignar ?? 0} fallas
             </span>
+            {(sim?.premiumEntregados ?? 0) > 0 && (
+              <span className="inline-flex items-center gap-1 rounded bg-fuchsia-100 px-2 py-1 text-fuchsia-700 dark:bg-fuchsia-500/20 dark:text-fuchsia-300">
+                <Star className="size-3 fill-current" />
+                {sim?.premiumEntregados} premium ·{" "}
+                {numero.format(sim?.minutosPremium ?? 0)} min
+              </span>
+            )}
           </div>
 
           {sim && !sim.valido && (
@@ -255,7 +271,7 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
 
           {sim && (
             <div>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
                 {resumen.map((dato) => (
                   <div
                     key={dato.etiqueta}
@@ -277,7 +293,10 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
                 {numero.format(sim.detalle.costoVehiculos)} · tiempo{" "}
                 {numero.format(sim.makespan)} min ×{" "}
                 {dataset.mundo.costo_por_minuto_total} ={" "}
-                {numero.format(sim.detalle.costoMinutos)} · fallas{" "}
+                {numero.format(sim.detalle.costoMinutos)} · premium{" "}
+                {numero.format(sim.minutosPremium)} min ×{" "}
+                {dataset.mundo.costo_por_minuto_premium} ={" "}
+                {numero.format(sim.detalle.costoPremium)} · fallas{" "}
                 {sim.sinAsignar} × {dataset.mundo.costo_por_falla} ={" "}
                 {numero.format(sim.detalle.costoFallas)}
               </p>
@@ -291,6 +310,7 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
                   <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:text-slate-400">
                     <th className="py-2 pr-4 font-semibold">Vehículo</th>
                     <th className="py-2 pr-4 font-semibold">Entregas</th>
+                    <th className="py-2 pr-4 font-semibold">Premium</th>
                     <th className="py-2 pr-4 font-semibold">Distancia</th>
                     <th className="py-2 pr-4 font-semibold">Minutos</th>
                     <th className="py-2 font-semibold">Regreso</th>
@@ -307,6 +327,11 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
                       </td>
                       <td className="py-2 pr-4 text-slate-600 dark:text-slate-300">
                         {detalle.entregas}
+                      </td>
+                      <td className="py-2 pr-4 text-slate-600 dark:text-slate-300">
+                        {detalle.premiumEntregados > 0
+                          ? `${detalle.premiumEntregados} · ${numero.format(detalle.minutosPremium)} min`
+                          : "—"}
                       </td>
                       <td className="py-2 pr-4 text-slate-600 dark:text-slate-300">
                         {numero.format(detalle.distancia)} cuadras
@@ -352,20 +377,35 @@ export default function Plan({ dataset, resultado, onGenerado }: Props) {
                         </td>
                         <td className="py-3">
                           <div className="flex flex-wrap gap-1">
-                            {ruta.paradas.map((parada, indice) => (
-                              <span
-                                key={`${ruta.vehiculo}-${parada}-${indice}`}
-                                className={
-                                  parada === "DEPOSITO"
-                                    ? "rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
-                                    : "rounded bg-sky-100 px-1.5 py-0.5 text-xs font-semibold text-sky-800 dark:bg-sky-500/20 dark:text-sky-200"
-                                }
-                              >
-                                {parada === "DEPOSITO"
-                                  ? "DEPOSITO"
-                                  : `#${parada}`}
-                              </span>
-                            ))}
+                            {ruta.paradas.map((parada, indice) => {
+                              const esPremium =
+                                typeof parada === "number" &&
+                                premiumPorId.get(parada) === true;
+
+                              return (
+                                <span
+                                  key={`${ruta.vehiculo}-${parada}-${indice}`}
+                                  className={
+                                    parada === "DEPOSITO"
+                                      ? "rounded bg-amber-100 px-1.5 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-500/20 dark:text-amber-300"
+                                      : esPremium
+                                        ? "inline-flex items-center gap-0.5 rounded bg-fuchsia-100 px-1.5 py-0.5 text-xs font-semibold text-fuchsia-800 dark:bg-fuchsia-500/20 dark:text-fuchsia-200"
+                                        : "rounded bg-sky-100 px-1.5 py-0.5 text-xs font-semibold text-sky-800 dark:bg-sky-500/20 dark:text-sky-200"
+                                  }
+                                >
+                                  {parada === "DEPOSITO" ? (
+                                    "DEPOSITO"
+                                  ) : (
+                                    <>
+                                      {esPremium && (
+                                        <Star className="size-3 fill-current" />
+                                      )}
+                                      #{parada}
+                                    </>
+                                  )}
+                                </span>
+                              );
+                            })}
                           </div>
                         </td>
                       </tr>

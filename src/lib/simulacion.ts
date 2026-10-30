@@ -94,6 +94,8 @@ export function simularPlan(dataset: Dataset, plan: Plan): Simulacion {
   let distancia = 0;
   let makespan = 0;
   let vehiculosUsados = 0;
+  let premiumEntregados = 0;
+  let minutosPremium = 0;
   const entregados = new Set<number>();
   const detalleRutas: DetalleRuta[] = [];
 
@@ -114,6 +116,8 @@ export function simularPlan(dataset: Dataset, plan: Plan): Simulacion {
     let minutos = 0;
     let distanciaRuta = 0;
     let entregasRuta = 0;
+    let premiumRuta = 0;
+    let minutosPremiumRuta = 0;
 
     for (const parada of ruta.paradas) {
       if (parada === "DEPOSITO") {
@@ -129,7 +133,17 @@ export function simularPlan(dataset: Dataset, plan: Plan): Simulacion {
 
       const cuadras = distanciaManhattan(posicion, pedido);
       distanciaRuta += cuadras;
-      minutos += cuadras * mundo.min_por_cuadra + mundo.tiempo_servicio;
+      minutos += cuadras * mundo.min_por_cuadra;
+
+      const yaEntregado = entregados.has(pedido.id);
+      if (pedido.premium && !yaEntregado) {
+        premiumEntregados += 1;
+        minutosPremium += minutos;
+        premiumRuta += 1;
+        minutosPremiumRuta += minutos;
+      }
+
+      minutos += mundo.tiempo_servicio;
       posicion = { x: pedido.x, y: pedido.y };
       entregados.add(pedido.id);
       entregasRuta += 1;
@@ -149,6 +163,8 @@ export function simularPlan(dataset: Dataset, plan: Plan): Simulacion {
       minutos,
       horaRegreso: sumarMinutos(mundo.hora_salida, minutos),
       entregas: entregasRuta,
+      premiumEntregados: premiumRuta,
+      minutosPremium: minutosPremiumRuta,
     });
   }
 
@@ -157,14 +173,22 @@ export function simularPlan(dataset: Dataset, plan: Plan): Simulacion {
   const costoDistancia = distancia * mundo.costo_por_cuadra;
   const costoVehiculos = vehiculosUsados * mundo.costo_por_vehiculo;
   const costoMinutos = makespan * mundo.costo_por_minuto_total;
+  const costoPremium = minutosPremium * mundo.costo_por_minuto_premium;
   const costoFallas = sinAsignar * mundo.costo_por_falla;
 
   return {
-    costoTotal: costoDistancia + costoVehiculos + costoMinutos + costoFallas,
+    costoTotal:
+      costoDistancia +
+      costoVehiculos +
+      costoMinutos +
+      costoPremium +
+      costoFallas,
     distancia,
     vehiculosUsados,
     makespan,
     entregados: entregados.size,
+    premiumEntregados,
+    minutosPremium,
     sinAsignar,
     valido: errores.length === 0,
     errores,
@@ -172,6 +196,7 @@ export function simularPlan(dataset: Dataset, plan: Plan): Simulacion {
       costoDistancia,
       costoVehiculos,
       costoMinutos,
+      costoPremium,
       costoFallas,
     },
     detalleRutas,

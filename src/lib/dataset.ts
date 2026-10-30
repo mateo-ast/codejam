@@ -37,6 +37,22 @@ function aTexto(valor: unknown): string {
   return typeof valor === "string" ? valor.trim() : "";
 }
 
+function aBooleano(valor: unknown): boolean {
+  if (typeof valor === "boolean") return valor;
+  if (typeof valor === "number") return valor === 1;
+  if (typeof valor === "string") {
+    const texto = valor.trim().toLowerCase();
+    return (
+      texto === "1" ||
+      texto === "true" ||
+      texto === "si" ||
+      texto === "sí" ||
+      texto === "yes"
+    );
+  }
+  return false;
+}
+
 function aNumero(valor: unknown): number | null {
   if (typeof valor === "number") {
     return Number.isFinite(valor) ? valor : null;
@@ -70,6 +86,7 @@ export function normalizarMundo(bruto: unknown): Mundo {
     costo_por_cuadra: enteroO(fuente.costo_por_cuadra, 0),
     costo_por_vehiculo: enteroO(fuente.costo_por_vehiculo, 0),
     costo_por_minuto_total: enteroO(fuente.costo_por_minuto_total, 0),
+    costo_por_minuto_premium: enteroO(fuente.costo_por_minuto_premium, 1),
     costo_por_falla: enteroO(fuente.costo_por_falla, 0),
   };
 
@@ -103,6 +120,10 @@ export function normalizarMundo(bruto: unknown): Mundo {
     { nombre: "costo_por_cuadra", valor: mundo.costo_por_cuadra },
     { nombre: "costo_por_vehiculo", valor: mundo.costo_por_vehiculo },
     { nombre: "costo_por_minuto_total", valor: mundo.costo_por_minuto_total },
+    {
+      nombre: "costo_por_minuto_premium",
+      valor: mundo.costo_por_minuto_premium,
+    },
     { nombre: "costo_por_falla", valor: mundo.costo_por_falla },
   ];
 
@@ -159,6 +180,7 @@ export function normalizarPedidos(bruto: unknown): Pedido[] {
       x,
       y,
       peso: Math.round(peso),
+      premium: aBooleano(item.premium),
     });
   });
 
@@ -300,6 +322,7 @@ function parsearTextoPedidos(texto: string): unknown {
   const [iId, iX, iY, iPeso] = ["id", "x", "y", "peso"].map((nombre) =>
     encabezado.indexOf(nombre),
   );
+  const iPremium = encabezado.indexOf("premium");
   if (iId < 0 || iX < 0 || iY < 0 || iPeso < 0) {
     throw new ErrorDataset(
       "El CSV de pedidos debe tener las columnas id,x,y,peso",
@@ -311,6 +334,7 @@ function parsearTextoPedidos(texto: string): unknown {
     x: fila[iX],
     y: fila[iY],
     peso: fila[iPeso],
+    premium: iPremium >= 0 ? fila[iPremium] : undefined,
   }));
 }
 
