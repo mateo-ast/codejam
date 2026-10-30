@@ -30,7 +30,7 @@ const descripciones: Record<Estrategia, string> = {
   simple:
     "Un vehículo reparte todos los pedidos priorizando los premium y luego en orden de id.",
   cluster:
-    "Prueba particiones por barrido angular, k-medoides y ahorros de Clarke-Wright, reparte los viajes entre la flota (con regresos DEPOSITO cuando conviene), ordena cada ruta con vecino más cercano, 2-opt y Or-opt, adelanta los pedidos premium y elige el plan de menor costo total (incluye vehículos, makespan y minutos premium).",
+    "Prueba particiones por barrido angular, k-medoides y ahorros de Clarke-Wright, reparte los viajes entre la flota (con regresos DEPOSITO cuando conviene), mejora globalmente con 2-opt* y relocate, refina cada ruta con Or-opt, adelanta los pedidos premium y elige el plan de menor costo total (incluye vehículos, makespan y minutos premium).",
 };
 
 function campoCsv(valor: string | number): string {

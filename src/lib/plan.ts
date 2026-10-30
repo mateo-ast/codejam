@@ -362,7 +362,17 @@ function construirRuta(
     : ruta;
 }
 
-function costoRuta(pedidos: Pedido[], deposito: Punto, mundo: Mundo): number {
+interface MetricasViaje {
+  distancia: number;
+  minutosPremium: number;
+  duracion: number;
+}
+
+function metricasViaje(
+  pedidos: Pedido[],
+  deposito: Punto,
+  mundo: Mundo,
+): MetricasViaje {
   let minutos = 0;
   let distancia = 0;
   let minutosPremium = 0;
@@ -381,10 +391,35 @@ function costoRuta(pedidos: Pedido[], deposito: Punto, mundo: Mundo): number {
   distancia += vuelta;
   minutos += vuelta * mundo.min_por_cuadra;
 
+  return { distancia, minutosPremium, duracion: minutos };
+}
+
+function costoRuta(pedidos: Pedido[], deposito: Punto, mundo: Mundo): number {
+  const metricas = metricasViaje(pedidos, deposito, mundo);
+
+  return (
+    metricas.distancia * mundo.costo_por_cuadra +
+    metricas.minutosPremium * mundo.costo_por_minuto_premium +
+    metricas.duracion * mundo.costo_por_minuto_total
+  );
+}
+
+function costoMetricas(metricas: MetricasViaje[], mundo: Mundo): number {
+  let distancia = 0;
+  let minutosPremium = 0;
+  let makespan = 0;
+
+  for (const metrica of metricas) {
+    distancia += metrica.distancia;
+    minutosPremium += metrica.minutosPremium;
+    if (metrica.duracion > makespan) makespan = metrica.duracion;
+  }
+
   return (
     distancia * mundo.costo_por_cuadra +
     minutosPremium * mundo.costo_por_minuto_premium +
-    minutos * mundo.costo_por_minuto_total
+    makespan * mundo.costo_por_minuto_total +
+    metricas.length * mundo.costo_por_vehiculo
   );
 }
 
@@ -452,7 +487,307 @@ function mejorarConPremium(
   return ruta;
 }
 
+function mejorarConOrOptCosto(
+  entrada: Pedido[],
+  deposito: Punto,
+  mundo: Mundo,
+): Pedido[] {
+  if (entrada.length < 3) return [...entrada];
+
+  let ruta = [...entrada];
+  let mejorCosto = costoRuta(ruta, deposito, mundo);
+  const maxLargo = ruta.length <= 60 ? 3 : 2;
+  const maxPasadas = ruta.length <= 40 ? 6 : ruta.length <= 80 ? 3 : 1;
+
+  for (let pasada = 0; pasada < maxPasadas; pasada += 1) {
+    let huboMejora = false;
+
+    for (
+      let largo = 1;
+      largo <= Math.min(maxLargo, ruta.length - 1);
+      largo += 1
+    ) {
+      for (let inicio = 0; inicio + largo <= ruta.length; inicio += 1) {
+        const segmento = ruta.slice(inicio, inicio + largo);
+        const resto = [...ruta.slice(0, inicio), ...ruta.slice(inicio + largo)];
+
+        for (let insercion = 0; insercion <= resto.length; insercion += 1) {
+          if (insercion === inicio) continue;
+
+          for (const invertido of [false, true]) {
+            const bloque = invertido ? [...segmento].reverse() : segmento;
+            const candidata = [
+              ...resto.slice(0, insercion),
+              ...bloque,
+              ...resto.slice(insercion),
+            ];
+            const costo = costoRuta(candidata, deposito, mundo);
+
+            if (costo < mejorCosto - 0.000001) {
+              ruta = candidata;
+              mejorCosto = costo;
+              huboMejora = true;
+            }
+          }
+        }
+      }
+    }
+
+    if (!huboMejora) break;
+  }
+
+  return ruta;
+}
+
+function optimizarLocal(
+  viajes: Pedido[][],
+  deposito: Punto,
+  mundo: Mundo,
+): Pedido[][] {
+  return viajes.map((viaje) => {
+    if (viaje.length < 3) return [...viaje];
+    if (viaje.some((pedido) => pedido.premium) && viaje.length <= 120) {
+      return mejorarConOrOptCosto(viaje, deposito, mundo);
+    }
+    return mejorarConOrOpt(viaje, deposito);
+  });
+}
+
+type MovimientoGlobal =
+  | {
+      tipo: "relocate";
+      origen: number;
+      indice: number;
+      destino: number;
+      posicion: number;
+    }
+  | {
+      tipo: "dosOpt";
+      a: number;
+      b: number;
+      corteA: number;
+      corteB: number;
+    };
+
+function metricasConDosCambios(
+  actual: Pedido[][],
+  metricas: MetricasViaje[],
+  indiceA: number,
+  viajeA: Pedido[],
+  indiceB: number,
+  viajeB: Pedido[],
+  deposito: Punto,
+  mundo: Mundo,
+): MetricasViaje[] {
+  const resultado: MetricasViaje[] = [];
+
+  for (let i = 0; i < actual.length; i += 1) {
+    if (i === indiceA) {
+      if (viajeA.length > 0) {
+        resultado.push(metricasViaje(viajeA, deposito, mundo));
+      }
+    } else if (i === indiceB) {
+      if (viajeB.length > 0) {
+        resultado.push(metricasViaje(viajeB, deposito, mundo));
+      }
+    } else {
+      resultado.push(metricas[i]);
+    }
+  }
+
+  return resultado;
+}
+
+function aplicarMovimiento(
+  actual: Pedido[][],
+  movimiento: MovimientoGlobal,
+): Pedido[][] {
+  const siguiente = actual.map((viaje) => [...viaje]);
+
+  if (movimiento.tipo === "relocate") {
+    const [pedido] = siguiente[movimiento.origen].splice(movimiento.indice, 1);
+    siguiente[movimiento.destino].splice(movimiento.posicion, 0, pedido);
+  } else {
+    const viajeA = siguiente[movimiento.a];
+    const viajeB = siguiente[movimiento.b];
+
+    siguiente[movimiento.a] = [
+      ...viajeA.slice(0, movimiento.corteA),
+      ...viajeB.slice(movimiento.corteB),
+    ];
+    siguiente[movimiento.b] = [
+      ...viajeB.slice(0, movimiento.corteB),
+      ...viajeA.slice(movimiento.corteA),
+    ];
+  }
+
+  return siguiente.filter((viaje) => viaje.length > 0);
+}
+
+function optimizarGlobal(
+  entrada: Pedido[][],
+  deposito: Punto,
+  mundo: Mundo,
+): Pedido[][] {
+  let actual = entrada
+    .filter((viaje) => viaje.length > 0)
+    .map((viaje) => [...viaje]);
+
+  if (actual.length <= 1) return actual;
+
+  let metricas = actual.map((viaje) => metricasViaje(viaje, deposito, mundo));
+  let costo = costoMetricas(metricas, mundo);
+
+  const totalPedidos = actual.reduce((total, viaje) => total + viaje.length, 0);
+  const maxIteraciones = totalPedidos <= 80 ? 10 : totalPedidos <= 200 ? 5 : 2;
+  const presupuesto =
+    totalPedidos <= 80 ? 25000 : totalPedidos <= 200 ? 10000 : 3000;
+  let evaluaciones = 0;
+
+  for (let iteracion = 0; iteracion < maxIteraciones; iteracion += 1) {
+    let mejorCosto = costo;
+    let mejorMovimiento: MovimientoGlobal | null = null;
+    let agotado = false;
+
+    for (let origen = 0; origen < actual.length && !agotado; origen += 1) {
+      const viajeOrigen = actual[origen];
+
+      for (
+        let indice = 0;
+        indice < viajeOrigen.length && !agotado;
+        indice += 1
+      ) {
+        const pedido = viajeOrigen[indice];
+        const origenSinPedido = [
+          ...viajeOrigen.slice(0, indice),
+          ...viajeOrigen.slice(indice + 1),
+        ];
+
+        for (
+          let destino = 0;
+          destino < actual.length && !agotado;
+          destino += 1
+        ) {
+          if (destino === origen) continue;
+
+          const viajeDestino = actual[destino];
+
+          for (
+            let posicion = 0;
+            posicion <= viajeDestino.length;
+            posicion += 1
+          ) {
+            if (evaluaciones >= presupuesto) {
+              agotado = true;
+              break;
+            }
+            evaluaciones += 1;
+
+            const destinoConPedido = [
+              ...viajeDestino.slice(0, posicion),
+              pedido,
+              ...viajeDestino.slice(posicion),
+            ];
+            const nuevasMetricas = metricasConDosCambios(
+              actual,
+              metricas,
+              origen,
+              origenSinPedido,
+              destino,
+              destinoConPedido,
+              deposito,
+              mundo,
+            );
+            const nuevoCosto = costoMetricas(nuevasMetricas, mundo);
+
+            if (nuevoCosto < mejorCosto - 0.000001) {
+              mejorCosto = nuevoCosto;
+              mejorMovimiento = {
+                tipo: "relocate",
+                origen,
+                indice,
+                destino,
+                posicion,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    for (let a = 0; a < actual.length && !agotado; a += 1) {
+      for (let b = a + 1; b < actual.length && !agotado; b += 1) {
+        const viajeA = actual[a];
+        const viajeB = actual[b];
+
+        for (let corteA = 0; corteA <= viajeA.length && !agotado; corteA += 1) {
+          for (
+            let corteB = 0;
+            corteB <= viajeB.length && !agotado;
+            corteB += 1
+          ) {
+            if (
+              (corteA === viajeA.length && corteB === viajeB.length) ||
+              (corteA === 0 && corteB === 0)
+            ) {
+              continue;
+            }
+
+            if (evaluaciones >= presupuesto) {
+              agotado = true;
+              break;
+            }
+            evaluaciones += 1;
+
+            const nuevaA = [
+              ...viajeA.slice(0, corteA),
+              ...viajeB.slice(corteB),
+            ];
+            const nuevaB = [
+              ...viajeB.slice(0, corteB),
+              ...viajeA.slice(corteA),
+            ];
+            const nuevasMetricas = metricasConDosCambios(
+              actual,
+              metricas,
+              a,
+              nuevaA,
+              b,
+              nuevaB,
+              deposito,
+              mundo,
+            );
+            const nuevoCosto = costoMetricas(nuevasMetricas, mundo);
+
+            if (nuevoCosto < mejorCosto - 0.000001) {
+              mejorCosto = nuevoCosto;
+              mejorMovimiento = {
+                tipo: "dosOpt",
+                a,
+                b,
+                corteA,
+                corteB,
+              };
+            }
+          }
+        }
+      }
+    }
+
+    if (mejorMovimiento === null) break;
+
+    actual = aplicarMovimiento(actual, mejorMovimiento);
+    metricas = actual.map((viaje) => metricasViaje(viaje, deposito, mundo));
+    costo = mejorCosto;
+
+    if (agotado) break;
+  }
+
+  return actual;
+}
+
 interface Viaje {
+  pedidos: Pedido[];
   paradas: number[];
   distancia: number;
   premium: number;
@@ -468,6 +803,15 @@ function distanciaDeRuta(pedidos: Pedido[], deposito: Punto): number {
   }
 
   return total + distanciaManhattan(actual, deposito);
+}
+
+function crearViaje(pedidos: Pedido[], deposito: Punto): Viaje {
+  return {
+    pedidos,
+    paradas: pedidos.map((pedido) => pedido.id),
+    distancia: distanciaDeRuta(pedidos, deposito),
+    premium: pedidos.filter((pedido) => pedido.premium).length,
+  };
 }
 
 function planDesdeViajes(dataset: Dataset, viajes: Viaje[]): Plan {
@@ -744,29 +1088,41 @@ export function generarPlanClusteres(dataset: Dataset): ResultadoPlan {
       for (const clusters of particiones) {
         if (clusters.length === 0) continue;
 
-        const viajes: Viaje[] = [];
+        const viajesIniciales: Pedido[][] = [];
 
         for (const cluster of clusters) {
           if (cluster.length === 0) continue;
-          const orden = construirRuta(cluster, deposito, dataset.mundo);
-          viajes.push({
-            paradas: orden.map((pedido) => pedido.id),
-            distancia: distanciaDeRuta(orden, deposito),
-            premium: orden.filter((pedido) => pedido.premium).length,
-          });
+          viajesIniciales.push(construirRuta(cluster, deposito, dataset.mundo));
         }
 
-        if (viajes.length === 0) continue;
+        if (viajesIniciales.length === 0) continue;
 
-        if (k <= maxK) {
-          agregar(planDesdeViajes(dataset, viajes));
-        }
+        const viajesOptimizados = optimizarLocal(
+          optimizarGlobal(viajesIniciales, deposito, dataset.mundo),
+          deposito,
+          dataset.mundo,
+        );
 
-        const maxVehiculos = Math.min(dataset.vehiculos.length, viajes.length);
+        for (const pedidosViaje of [viajesIniciales, viajesOptimizados]) {
+          const viajes = pedidosViaje
+            .filter((pedidos) => pedidos.length > 0)
+            .map((pedidos) => crearViaje(pedidos, deposito));
 
-        for (let vehiculos = 1; vehiculos <= maxVehiculos; vehiculos += 1) {
-          if (vehiculos === viajes.length) continue;
-          agregar(planConViajes(dataset, viajes, vehiculos));
+          if (viajes.length === 0) continue;
+
+          if (viajes.length <= maxK) {
+            agregar(planDesdeViajes(dataset, viajes));
+          }
+
+          const maxVehiculos = Math.min(
+            dataset.vehiculos.length,
+            viajes.length,
+          );
+
+          for (let vehiculos = 1; vehiculos <= maxVehiculos; vehiculos += 1) {
+            if (vehiculos === viajes.length) continue;
+            agregar(planConViajes(dataset, viajes, vehiculos));
+          }
         }
       }
     }
